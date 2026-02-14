@@ -1,4 +1,3 @@
-# fedavg_sim.py
 from copy import deepcopy
 import numpy as np
 import torch
@@ -133,10 +132,9 @@ def main():
     curves = {}
 
     # Centralized baseline (dashed line)
-    # TODO: Check if this thing needs to be plotted per different alpha value
     base_model = get_model().to(device)
     train_loader_central = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
-    for _ in tqdm(range(rounds * local_epochs), desc="Centralized epochs"):  # keep modest; adjust if you want closer to paper
+    for _ in tqdm(range(rounds * local_epochs), desc="Centralized epochs"):
         train_one_client(base_model, train_loader_central, device, epochs=1, lr=0.05)
     central_acc = evaluate(base_model, test_loader, device)
     print("Centralized test acc:", central_acc)
