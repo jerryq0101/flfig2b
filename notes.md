@@ -6,7 +6,7 @@
 
 `dirichlet_split.py` implements a Dirichlet label-skew partition of CIFAR-10 into client datasets.
 
-`fedavg_sim.py` implements federated training with FedAvg, centralized baseline training, and generation of Figure 2b-style accuracy curves. PyramidNet-110 is used as the model architecture (ResNet-18 was used initially for debugging).
+`fedavg_sim.py` implements federated training with FedAvg, centralized version training, and generation of curves. PyramidNet-110 is used as the model architecture (ResNet-18 was used initially for debugging).
 
 ### Simulation Setup
 No physical FL devices were available to me locally, so federated training was simulated using a sequential client loop.
@@ -40,3 +40,6 @@ PyramidNet-110 (alpha = 84) was used following common CIFAR10 configurations fro
 PyramidNet Source: https://github.com/dyhan0920/PyramidNet-PyTorch
 
 
+### Optimizer 
+SGD with momentum 0.9, weight decay 5e-4, learning rate 0.05.
+(The optimizer and hyperparameters were not specified in the paper.)
