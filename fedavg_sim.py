@@ -7,6 +7,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms, models
 from tqdm import tqdm
+from pyramidnet import PyramidNet
 import matplotlib.pyplot as plt
 
 from dirichlet_split import dirichlet_label_split
@@ -43,13 +44,17 @@ def train_one_client(model, loader, device, epochs=1, lr=0.05, momentum=0.9, wei
             loss.backward()
             optimizer.step()
 
-# ResNet 18 standing in for pyramid net (smaller)
+# # ResNet 18 standing in for pyramid net (smaller)
+# def get_model():
+#     # ResNet18 baseline for CIFAR-10; adjust first conv for 32x32
+#     model = models.resnet18(num_classes=10)
+#     model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+#     model.maxpool = nn.Identity()
+#     return model
+
 def get_model():
-    # ResNet18 baseline for CIFAR-10; adjust first conv for 32x32
-    model = models.resnet18(num_classes=10)
-    model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-    model.maxpool = nn.Identity()
-    return model
+    return PyramidNet(dataset="cifar10", depth=110, alpha=84, num_classes=10, bottleneck=False)
+
 
 # Fed average aggregation of client weights
 def fedavg(state_dicts, weights):
@@ -112,21 +117,26 @@ def main():
 
     # FL knobs (Non paper specified values, constant across rounds timeline)
     num_clients = 20    #20
+    # num_clients = 5
     clients_per_round = 20  # just use all clients
+    # clients_per_round = 5
     local_epochs = 1
-    batch_size = 64
+    batch_size = 256
+    # batch_size = 32
 
     # From Graph
     rounds = 50             # 50 total rounds (still need to record accuracy at before rounds)
+    # rounds = 2
     # Alpha values in figure 2b
     alphas = [0.1, 1.0, 10.0, 100.0] # 0.1, 1, 10, 100
+    # alphas = [1.0]
     curves = {}
 
     # Centralized baseline (dashed line)
     # TODO: Check if this thing needs to be plotted per different alpha value
     base_model = get_model().to(device)
     train_loader_central = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
-    for _ in tqdm(range(10), desc="Centralized epochs"):  # keep modest; adjust if you want closer to paper
+    for _ in tqdm(range(rounds * local_epochs), desc="Centralized epochs"):  # keep modest; adjust if you want closer to paper
         train_one_client(base_model, train_loader_central, device, epochs=1, lr=0.05)
     central_acc = evaluate(base_model, test_loader, device)
     print("Centralized test acc:", central_acc)
@@ -154,6 +164,11 @@ def main():
         # server model weights initial 
         global_state = deepcopy(global_model.state_dict())
 
+
+        # Create per-client model objects ONCE (reuse each round)
+        client_models = [get_model().to(device) for _ in range(num_clients)]
+
+
         # FL communication rounds loop
 
         # Accumulating accuracy for each round of a particular alpha
@@ -170,8 +185,10 @@ def main():
             local_states = []
             local_weights = []
             for k in selected:
-                client_model = get_model().to(device)
-                # get the global state
+                # client_model = get_model().to(device)
+                # # get the global state
+                # client_model.load_state_dict(global_state)
+                client_model = client_models[k]
                 client_model.load_state_dict(global_state)
 
                 loader = client_loaders[k]
@@ -180,7 +197,9 @@ def main():
                 train_one_client(client_model, loader, device, epochs=local_epochs, lr=0.05)
 
                 # Add to local weight states
-                local_states.append(deepcopy(client_model.state_dict()))
+                # local_states.append(deepcopy(client_model.state_dict()))
+                local_states.append({k: v.detach().clone() for k, v in client_model.state_dict().items()})
+
                 # Also store this subset's size for the Fedavg
                 local_weights.append(len(client_subsets[k]))
 
