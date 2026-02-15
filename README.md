@@ -1,5 +1,13 @@
 Simply open your conda environment with pytorch and `python fedavg_sim.py` to start experiment.
 
+### Dependencies
+- Python 3.11
+- PyTorch 2.6 (CUDA 12.4 build)
+- torchvision 0.xx
+- numpy
+- matplotlib
+- tqdm
+
 # Variable Notes on Paper reproduction
 - Python 3.11.14
 - PyTorch 2.6.0+cu124
