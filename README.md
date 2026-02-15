@@ -1,4 +1,4 @@
-Simply open your conda environment with pytorch and `python fedavg_sim.py`
+Simply open your conda environment with pytorch and `python fedavg_sim.py` to start experiment.
 
 # Variable Notes on Paper reproduction
 - Python 3.11.14
