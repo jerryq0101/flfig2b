@@ -2,8 +2,8 @@ Simply open your conda environment with pytorch and `python fedavg_sim.py` to st
 
 ### Dependencies
 - Python 3.11
-- PyTorch 2.6 (CUDA 12.4 build)
-- torchvision 0.xx
+- PyTorch 2.6.0 (CUDA 12.4 build)
+- torchvision 0.21.0
 - numpy
 - matplotlib
 - tqdm
