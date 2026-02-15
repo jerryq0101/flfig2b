@@ -44,7 +44,7 @@ PyramidNet Source: https://github.com/dyhan0920/PyramidNet-PyTorch
 SGD with momentum 0.9, weight decay 5e-4, learning rate 0.05.
 (The optimizer and hyperparameters were not specified in the paper)
 
-# Attempt Notes
+# Resulting Graph Notes
 
 The qualitative trend from 2b is preserved: larger alpha yields higher accuracy, and accuracy improves over FL rounds. However, the absolute accuracies differ from the paper.
 
