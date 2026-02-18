@@ -169,10 +169,10 @@ def main():
     train_labels = np.array([full_train_aug.targets[i] for i in train_indices])
 
     # experimental parameters
-    num_clients = 10
-    clients_per_round = 10
+    num_clients = 20
+    clients_per_round = 20
     local_epochs = 1
-    batch_size = 128
+    batch_size = 256
     rounds = 50
     alphas = [0.1, 1.0, 10.0, 100.0]
 
