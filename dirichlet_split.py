@@ -1,4 +1,3 @@
-# dirichlet_split.py
 import numpy as np
 
 
