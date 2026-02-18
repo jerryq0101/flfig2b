@@ -39,7 +39,12 @@ def get_weights(model: nn.Module) -> NDArrays:
 def set_weights(model: nn.Module, weights: NDArrays) -> None:
     keys = list(model.state_dict().keys())
     dev = next(model.parameters()).device
-    state_dict = {k: torch.from_numpy(w).to(dev) for k, w in zip(keys, weights)}
+    state_dict = {}
+    for k, w in zip(keys, weights):
+        t = torch.from_numpy(w).to(dev)
+        # Optional but recommended: match dtype of existing param/buffer
+        t = t.to(dtype=model.state_dict()[k].dtype)
+        state_dict[k] = t
     model.load_state_dict(state_dict, strict=True)
 
 
@@ -246,8 +251,8 @@ def main():
             num_clients=num_clients,
             config=fl.server.ServerConfig(num_rounds=rounds),
             strategy=strategy,
-            client_resources={"num_cpus": 1, "num_gpus": 1.0}, 
-            ray_init_args={"include_dashboard": False, "num_gpus": 1.0},
+            client_resources={"num_cpus": 1, "num_gpus": 1.0},
+            ray_init_args={"include_dashboard": False, "num_gpus": 1, "num_cpus": 1},
         )
 
         print(f"=== alpha={alpha} finished ===", flush=True)
