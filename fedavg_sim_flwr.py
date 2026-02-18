@@ -218,7 +218,7 @@ def main():
             for ds in client_subsets
         ]
 
-        # IMPORTANT: With 1 GPU, keep clients CPU to avoid contention.
+        # Use Single GPU, only spawn a single client on it at a time though.
         client_device = torch.device("cuda")
 
         def client_fn(context: Context):
@@ -247,7 +247,7 @@ def main():
             config=fl.server.ServerConfig(num_rounds=rounds),
             strategy=strategy,
             client_resources={"num_cpus": 1, "num_gpus": 1.0}, 
-            ray_init_args={"include_dashboard": False},
+            ray_init_args={"include_dashboard": False, "num_gpus": 1.0},
         )
 
         print(f"=== alpha={alpha} finished ===", flush=True)
