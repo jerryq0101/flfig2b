@@ -1,4 +1,3 @@
-# fedavg_sim_flwr.py
 from __future__ import annotations
 
 import os
@@ -14,7 +13,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 import flwr as fl
+# Context is metadata to each client_fn
 from flwr.common import Context, NDArrays, Scalar
+# Conversion utility between flower and default python
 from flwr.client import NumPyClient
 
 from pyramidnet import PyramidNet
@@ -30,9 +31,11 @@ def get_model() -> nn.Module:
 def get_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Weight getter for a particular model, converted into Flower format
 def get_weights(model: nn.Module) -> NDArrays:
     return [v.detach().cpu().numpy() for _, v in model.state_dict().items()]
 
+# Uses a particular ND array from flower to populate model params
 def set_weights(model: nn.Module, weights: NDArrays) -> None:
     keys = list(model.state_dict().keys())
     dev = next(model.parameters()).device
@@ -53,6 +56,7 @@ def accuracy(model: nn.Module, loader: DataLoader, device: torch.device) -> floa
         total += y.numel()
     return correct / total
 
+# Local training step in each client per round
 def train_one_client(
     model: nn.Module,
     loader: DataLoader,
@@ -81,6 +85,7 @@ def train_one_client(
 # ----------------------------
 class FlowerClient(NumPyClient):
     def __init__(self, cid: int, train_loader: DataLoader, device: torch.device):
+        # Each flower client has its data, device param, model copy
         self.cid = cid
         self.train_loader = train_loader
         self.device = device
@@ -89,17 +94,19 @@ class FlowerClient(NumPyClient):
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         return get_weights(self.model)
 
+    # Client FL step on every communication round
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict[str, Scalar]]:
+        # Receive global model 
         set_weights(self.model, parameters)
         local_epochs = int(config.get("local_epochs", 1))
         lr = float(config.get("lr", 0.05))
-
+        # Local SGD step
         train_one_client(self.model, self.train_loader, self.device, epochs=local_epochs, lr=lr)
-
+        # Return updated weights after train
         return get_weights(self.model), len(self.train_loader.dataset), {}
 
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]):
-        # Not used (we do server-side eval)
+        # Not used (we do server side evaluation)
         return 0.0, 0, {}
 
 
@@ -115,7 +122,7 @@ def main():
     if device.type == "cuda":
         print("gpu =", torch.cuda.get_device_name(0))
 
-    # --- data ---
+    # Normalization constants
     mean = (0.4914, 0.4822, 0.4465)
     std = (0.2470, 0.2435, 0.2616)
 
@@ -137,7 +144,7 @@ def main():
     full_train_eval = datasets.CIFAR10(root="./data", train=True, download=False, transform=transform_test)
     print("Loaded CIFAR10 train", flush=True)
 
-    # deterministic 80/20 split on the *train* set (like your earlier code)
+    # deterministic 80/20 split on the *train* set
     n_total = len(full_train_aug)  # 50k
     n_test = int(0.2 * n_total)
     n_train = n_total - n_test
@@ -156,7 +163,7 @@ def main():
 
     train_labels = np.array([full_train_aug.targets[i] for i in train_indices])
 
-    # --- experiment knobs ---
+    # experimental parameters
     num_clients = 10
     clients_per_round = 10
     local_epochs = 1
@@ -164,7 +171,7 @@ def main():
     rounds = 50
     alphas = [0.1, 1.0, 10.0, 100.0]
 
-    # centralized baseline (epoch-matched)
+    # centralized baseline
     print("C) starting centralized baseline...", flush=True)
 
     base_model = get_model().to(device)
@@ -176,11 +183,13 @@ def main():
 
     curves: Dict[float, List[float]] = {}
 
-    # server-side evaluate_fn (records accuracy every round)
+    # server-side evaluate_fn (checks accuracy of combined model every round)
     def make_evaluate_fn(test_loader: DataLoader, eval_device: torch.device, pbar: tqdm):
         def evaluate_fn(server_round: int, parameters: NDArrays, config: Dict[str, Scalar]):
+            # Get model
             model = get_model().to(eval_device)
             set_weights(model, parameters)
+            # Evaluate accuracy of global model
             acc = accuracy(model, test_loader, eval_device)
             pbar.update(1)
             pbar.set_postfix(acc=f"{acc:.4f}")
@@ -194,7 +203,7 @@ def main():
     # Include round 0 accuracy (before training)
     init_acc = accuracy(get_model(), test_loader, device)
     for alpha in tqdm(alphas, desc="Alpha sessions"):
-
+        
         # partition train_ds into client datasets (Dirichlet on labels)
         client_lists_local = dirichlet_label_split(train_labels, num_clients=num_clients, alpha=alpha, seed=0)
 
@@ -227,7 +236,7 @@ def main():
             min_evaluate_clients=0,
             min_available_clients=num_clients,
             on_fit_config_fn=fit_config,
-            evaluate_fn=make_evaluate_fn(test_loader, device, pbar),  # eval on GPU if available
+            evaluate_fn=make_evaluate_fn(test_loader, device, pbar),
         )
 
         print(f"\n=== alpha={alpha} starting Flower sim ===", flush=True)
@@ -268,6 +277,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # Optional: reduce Ray spam
     os.environ.setdefault("RAY_DISABLE_WINDOWS_JOB_OBJECTS_WARNING", "1")
     main()
