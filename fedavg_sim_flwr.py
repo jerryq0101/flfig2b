@@ -210,7 +210,7 @@ def main():
         ]
 
         # IMPORTANT: With 1 GPU, keep clients CPU to avoid contention.
-        client_device = torch.device("cpu")
+        client_device = torch.device("cuda")
 
         def client_fn(context: Context):
             cid = int(context.node_config["partition-id"])
@@ -237,7 +237,7 @@ def main():
             num_clients=num_clients,
             config=fl.server.ServerConfig(num_rounds=rounds),
             strategy=strategy,
-            client_resources={"num_cpus": 4, "num_gpus": 0.0}, 
+            client_resources={"num_cpus": 1, "num_gpus": 1.0}, 
             ray_init_args={"include_dashboard": False},
         )
 
