@@ -262,7 +262,7 @@ def main():
         # Pull centralized acc history
         # history.metrics_centralized["acc"] is List[Tuple[round, acc]]
         accs = [v for _, v in history.metrics_centralized.get("acc", [])]
-        curves[alpha] = [init_acc] + accs
+        curves[alpha] = accs
 
         print(f"alpha={alpha} final acc={curves[alpha][-1]:.4f}")
 
