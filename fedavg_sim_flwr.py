@@ -205,8 +205,6 @@ def main():
     
     print("D) starting Flower simulation...", flush=True)
 
-    # Include round 0 accuracy (before training)
-    init_acc = accuracy(get_model(), test_loader, device)
     for alpha in tqdm(alphas, desc="Alpha sessions"):
         
         # partition train_ds into client datasets (Dirichlet on labels)
