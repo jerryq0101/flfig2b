@@ -15,6 +15,8 @@ Simply open your conda environment with pytorch and `python fedavg_sim.py` to st
 
 `fedavg_sim.py` implements federated training with FedAvg, centralized version training, and generation of curves. PyramidNet-110 is used as the model architecture (ResNet-18 was used initially for debugging).
 
+`fedavg_sim_flwr.py` implements federated training similar `fedavg_sim.py`. However, using the flower framework while constraining actor pool to a single GPU, disallowing parallelism due to compute constraints.
+
 ### FL simulation setup
 No physical FL devices were available to me locally, so federated training was simulated using a sequential client loop.
 
